@@ -243,3 +243,15 @@ func TestDualRejectsModernHeaderOnInitialize(t *testing.T) {
 		t.Fatalf("want 400 -32020, got %d %s", rr.Code, rr.Body.String())
 	}
 }
+
+// The 2026-07-28 schema requires "type": "object" at every inputSchema root.
+// A client that validates the listing rejects the whole page otherwise.
+func TestEveryToolSchemaHasObjectRoot(t *testing.T) {
+	for _, entry := range modernTools() {
+		tool := entry.(map[string]any)
+		schema := tool["inputSchema"].(map[string]any)
+		if schema["type"] != "object" {
+			t.Errorf("tool %v: inputSchema root type is %v, want \"object\"", tool["name"], schema["type"])
+		}
+	}
+}

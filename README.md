@@ -24,7 +24,7 @@ In `modern` and `dual` mode, a modern request goes through the checks the 2026-0
 - An unknown method, including the removed `ping`, gets 404 with `-32601`.
 - `Mcp-Session-Id` is ignored, and GET and DELETE get 405.
 
-Modern requests also get `server/discover`, results with `resultType` and `_meta` server identity, and a `tools/list` with `ttlMs` and `cacheScope`.
+Every `inputSchema` has `"type": "object"` at its root, which the 2026-07-28 schema requires. Modern requests also get `server/discover`, results with `resultType` and `_meta` server identity, and a `tools/list` with `ttlMs` and `cacheScope`.
 
 ## Tools
 
@@ -37,8 +37,8 @@ Modern clients also see these test tools:
 | `inspect_request` | Returns the HTTP headers and `_meta` the server received, so you can see what a gateway passed through. `Authorization`, `Cookie` and similar headers are redacted to their length. |
 | `slow_progress` | Runs for `seconds` (default 5, max 120). With `Accept: text/event-stream` and a `_meta.progressToken`, it streams one `notifications/progress` per second, then the result. It stops when the client disconnects and logs how long it ran. |
 | `needs_input` | A multi round-trip request. The first call returns `resultType: "input_required"` with a form `elicitation/create` and a signed `requestState`. The retry with `inputResponses` and the same `requestState` completes. The state is HMAC-signed, expires after 2 minutes, and is bound to the caller (a digest of `Authorization`, else `X-User`), the tool and its arguments. The client must declare `elicitation` in `clientCapabilities`. |
-| `ref_schema` | Has an `inputSchema` whose root is a `$ref` into `$defs`. |
-| `nullable_args` | Has an `inputSchema` with `"type": ["object", "null"]`. |
+| `ref_schema` | Has an `inputSchema` whose root is a `$ref` into `$defs`, beside `"type": "object"`. |
+| `composed_schema` | Has an `inputSchema` whose root combines two schemas with `allOf`. |
 | `header_param` | Its `region` parameter has `x-mcp-header: Region`, so the request must carry a matching `Mcp-Param-Region` header. |
 
 ## Run

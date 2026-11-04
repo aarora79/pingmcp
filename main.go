@@ -28,7 +28,7 @@ import (
 
 const (
 	serverName    = "pingmcp"
-	serverVersion = "1.1.0"
+	serverVersion = "1.1.1"
 	defaultProtoc = "2025-06-18"
 	sessionHeader = "Mcp-Session-Id"
 	maxBodyBytes  = 1 << 20

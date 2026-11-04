@@ -7,7 +7,11 @@ package main
 //	slow_progress   - streams progress over SSE for N seconds, cancel-aware
 //	needs_input     - multi round-trip request with a signed requestState
 //	ref_schema      - inputSchema with a root $ref into $defs
-//	nullable_args   - inputSchema whose type is ["object","null"]
+//	composed_schema - inputSchema whose root uses allOf
+//
+// The 2026-07-28 schema requires "type": "object" at the root of every
+// inputSchema, and allows any other JSON Schema 2020-12 keyword beside it.
+// Both schema tools follow that rule, so a conforming client accepts them.
 //	header_param    - a parameter mirrored into the Mcp-Param-Region header
 
 import (
@@ -105,10 +109,7 @@ func modernTools() []any {
 		tool("needs_input", "Ask the client for an answer through form elicitation, then finish on the retry.",
 			objectSchema(map[string]any{"topic": map[string]any{"type": "string"}})),
 		tool("ref_schema", "Tool whose inputSchema root is a $ref into $defs.", refSchema()),
-		tool("nullable_args", "Tool whose inputSchema type is [\"object\",\"null\"].", map[string]any{
-			"type":       []string{"object", "null"},
-			"properties": map[string]any{"note": map[string]any{"type": "string"}},
-		}),
+		tool("composed_schema", "Tool whose inputSchema root combines two schemas with allOf.", composedSchema()),
 		tool("header_param", "Tool whose region parameter is mirrored into the Mcp-Param-Region header.",
 			objectSchema(map[string]any{
 				"region":  map[string]any{"type": "string", "x-mcp-header": regionHeaderName},
@@ -120,12 +121,23 @@ func modernTools() []any {
 func refSchema() map[string]any {
 	return map[string]any{
 		"$schema": "https://json-schema.org/draft/2020-12/schema",
+		"type":    "object",
 		"$ref":    "#/$defs/Query",
 		"$defs": map[string]any{
 			"Query": objectSchema(map[string]any{
 				"query": map[string]any{"type": "string"},
 				"limit": map[string]any{"type": "integer", "minimum": 1},
 			}, "query"),
+		},
+	}
+}
+
+func composedSchema() map[string]any {
+	return map[string]any{
+		"type": "object",
+		"allOf": []any{
+			objectSchema(map[string]any{"name": map[string]any{"type": "string"}}, "name"),
+			objectSchema(map[string]any{"count": map[string]any{"type": "integer", "minimum": 0}}),
 		},
 	}
 }
@@ -166,7 +178,7 @@ func callModernTool(w http.ResponseWriter, r *http.Request, req rpcRequest, p mo
 		slowProgress(w, r, req, p)
 	case "needs_input":
 		writeNeedsInput(w, r, req, p)
-	case "ref_schema", "nullable_args":
+	case "ref_schema", "composed_schema":
 		args, _ := json.Marshal(p.Arguments)
 		writeResult(w, req.ID, completeResult(textResult("received arguments: "+string(args))))
 	case "header_param":
