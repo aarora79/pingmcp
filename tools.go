@@ -31,6 +31,11 @@ const (
 	defaultSlowSeconds = 5
 	maxSlowSeconds     = 120
 	regionHeaderName   = "Region"
+	// restrictedToolResult is the fixed output of the restricted fixture tool.
+	// A gateway test leaves echo allowed and withholds or blocks restricted, so
+	// this string in a response proves a call reached restricted that the
+	// gateway should have refused.
+	restrictedToolResult = "restricted-tool-result"
 )
 
 // redactedHeaders are never echoed back or logged with their value.
@@ -71,6 +76,22 @@ func callEcho(params json.RawMessage) map[string]any {
 	return textResult(msg)
 }
 
+// restrictedTool is a fixture a gateway test withholds or blocks. It carries no
+// behavior beyond returning a fixed marker, so a successful call is proof the
+// call reached the backend.
+func restrictedTool() map[string]any {
+	return map[string]any{
+		"name":        "restricted",
+		"description": "Fixture tool a gateway test withholds. Returns a fixed marker.",
+		"inputSchema": objectSchema(map[string]any{}),
+	}
+}
+
+// callRestricted handles tools/call for the restricted fixture tool (both eras).
+func callRestricted() map[string]any {
+	return textResult(restrictedToolResult)
+}
+
 func textResult(text string) map[string]any {
 	return map[string]any{
 		"content": []any{map[string]any{"type": "text", "text": text}},
@@ -100,6 +121,7 @@ func tool(name string, description string, inputSchema map[string]any) map[strin
 func modernTools() []any {
 	return []any{
 		echoTool(),
+		restrictedTool(),
 		tool("inspect_request", "Return the HTTP headers and _meta this server received. Credentials are redacted.",
 			objectSchema(map[string]any{})),
 		tool("slow_progress", "Run for N seconds, sending a progress notification each second over SSE.",
@@ -172,6 +194,8 @@ func callModernTool(w http.ResponseWriter, r *http.Request, req rpcRequest, p mo
 	switch p.Name {
 	case "echo":
 		writeResult(w, req.ID, completeResult(callEcho(req.Params)))
+	case "restricted":
+		writeResult(w, req.ID, completeResult(callRestricted()))
 	case "inspect_request":
 		writeResult(w, req.ID, completeResult(inspectRequest(r, p)))
 	case "slow_progress":

@@ -128,6 +128,19 @@ func TestModernBase64NameHeader(t *testing.T) {
 	}
 }
 
+func TestModernRestrictedTool(t *testing.T) {
+	withEra(t, eraModern)
+	rr := postModern(t, "tools/call", `"name":"restricted","arguments":{}`,
+		map[string]string{nameHeader: "restricted"})
+	if rr.Code != http.StatusOK {
+		t.Fatalf("restricted call: want 200, got %d %s", rr.Code, rr.Body.String())
+	}
+	content := result(t, rr)["content"].([]any)
+	if content[0].(map[string]any)["text"] != restrictedToolResult {
+		t.Fatalf("restricted returned %v", content)
+	}
+}
+
 func TestModernToolsListIsCacheable(t *testing.T) {
 	withEra(t, eraModern)
 	res := result(t, postModern(t, "tools/list", "", nil))
